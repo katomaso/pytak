@@ -231,7 +231,9 @@ class CertificateEnrollment:
             CSR string or None if generation fails
         """
         try:
-            url = f"https://{domain}:8446/Marti/api/tls/config"
+            if ":" not in domain:
+                domain += ":8446"
+            url = f"https://{domain}/Marti/api/tls/config"
             auth = BasicAuth(username, password)
 
             async with session.get(url, auth=auth) as response:
