@@ -17,32 +17,10 @@
 
 """PyTAK Constants."""
 
-import logging
 import os
 import platform
 
 from typing import Optional
-
-
-LOG_LEVEL: int = logging.INFO
-LOG_FORMAT: logging.Formatter = logging.Formatter(
-    ("%(asctime)s pytak %(levelname)s - %(message)s")
-)
-
-if os.environ.get("INVOCATION_ID"):
-    LOG_LEVEL = logging.INFO
-    LOG_FORMAT = logging.Formatter(("[%(levelname)s] %(message)s"))
-    logging.debug("Systemd format logging enabled via INVOCATION_ID env var.")
-
-if bool(os.environ.get("DEBUG")):
-    LOG_LEVEL = logging.DEBUG
-    LOG_FORMAT = logging.Formatter(
-        (
-            "%(asctime)s pytak %(levelname)s %(name)s.%(funcName)s:%(lineno)d - "
-            "%(message)s"
-        )
-    )
-    logging.debug("pytak Debugging Enabled via DEBUG Environment Variable.")
 
 DEFAULT_COT_URL: str = "udp+wo://239.2.3.1:6969"  # ATAK Default multicast
 DEFAULT_COT_STALE: str = "120"  # Config wants all values as strings, we'll cast later.

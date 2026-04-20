@@ -21,8 +21,8 @@ import os
 import tempfile
 import warnings
 import ssl
-
-from typing import Union,Tuple
+import logging
+from typing import Optional, Union,Tuple
 
 
 INSTALL_MSG = (
@@ -42,6 +42,7 @@ try:
 except ImportError as exc:
     warnings.warn(str(exc))
 
+logger = logging.getLogger("pytak.crypto")
 
 def save_pem(pem: bytes, dest: Union[str, None] = None) -> str:
     """Save PEM data to dest."""
@@ -136,12 +137,9 @@ def convert_p12_to_pem(output_path: str, passphrase: str) -> Tuple[str, str]:
     return pem_key_path, pem_cert_path
 
 
-def create_ssl_context(output_path, passphrase):
-    """Creates an SSL Context from a PKCS#12 certificate container."""
-    # Convert the .p12 file to PEM format
-    pem_key_path, pem_cert_path = convert_p12_to_pem(output_path, passphrase)
-    print(f"Converted PKCS#12 to PEM. Key path: {pem_key_path}, Cert path: {pem_cert_path}")
-    
+def convert_p12_to_ssl_context(output_path: str|Path, passphrase: Optional[str], check_hostname: bool = False) -> ssl.SSLContext:
+    """Create an SSL Context from a PKCS#12 certificate container."""
+    pem_key_path, pem_cert_path = convert_p12_to_pem(str(output_path), passphrase)
     # Create an SSL context using the PEM files
     # ssl_context = ssl.create_default_context()
     ssl_context = ssl._create_unverified_context()
@@ -149,4 +147,4 @@ def create_ssl_context(output_path, passphrase):
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
 
-    return ssl_context
+    return ssl_contextcreate_ssl_context = convert_p12_to_ssl_context  # deprecated; backward-compatibility only

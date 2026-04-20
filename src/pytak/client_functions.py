@@ -439,7 +439,7 @@ async def txworker_factory(
 async def rxworker_factory(
     queue: asyncio.Queue, config: SectionProxy
 ) -> pytak.RXWorker:
-    """Create a PyTAK TXWorker based on URL parameters.
+    """Create a PyTAK RXWorker based on URL parameters.
 
     :param cot_url: URL to COT Destination.
     :param event_queue: asyncio.Queue worker to get events from.

@@ -10,16 +10,13 @@ Uses async/await for improved performance and modern Python patterns.
 from __future__ import annotations
 
 import asyncio
-import base64
 import json
 import logging
 import os
-import secrets
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-import urllib
 import warnings
 
 from pytak.crypto_functions import INSTALL_MSG
@@ -77,17 +74,6 @@ class CertificateEnrollment:
 
         self.logger = logging.getLogger(__name__)
         self.trust_store_path = trust_store_path
-        self._setup_logging()
-
-    def _setup_logging(self):
-        """Setup logging configuration."""
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
-        # Enable debug logging for this module when verbose is needed
-        # Uncomment the next line to see more detailed parsing info
-        # self.logger.setLevel(logging.DEBUG)
 
     async def begin_enrollment(
         self,
@@ -252,7 +238,7 @@ class CertificateEnrollment:
                 response.raise_for_status()
                 response_text = await response.text()
 
-            self.logger.info(f"Received config response: {response_text}")
+            self.logger.debug(f"Received config response: {response_text}")
 
             # Parse XML response
             csr_config = self._parse_config_xml(response_text)
@@ -265,7 +251,7 @@ class CertificateEnrollment:
 
             # Generate CSR
             csr = self._create_csr_from_config(csr_config, private_key)
-            self.logger.info("CSR generated successfully")
+            self.logger.debug("CSR generated successfully")
             return csr
 
         except Exception as e:
@@ -903,9 +889,7 @@ class CertificateEnrollment:
 
 async def main():
     """Example usage of the CertificateEnrollment class."""
-    # Example usage
     enrollment = CertificateEnrollment()
-
     # For testing with self-signed certificates (NOT for production)
     domain = "example.com"
     username = "testuser"
@@ -924,4 +908,8 @@ async def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
     asyncio.run(main())
