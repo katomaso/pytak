@@ -117,7 +117,7 @@ def convert_p12_to_pem(output_path: str, passphrase: Optional[str]) -> Tuple[str
     with open(output_path, "rb") as p12_file:
         p12_data = p12_file.read()
     private_key, cert, additional_certs = pkcs12.load_key_and_certificates(
-        p12_data, passphrase.encode()
+        p12_data, passphrase.encode() if passphrase else None
     )
 
     # Write PEM files
