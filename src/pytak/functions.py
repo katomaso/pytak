@@ -24,6 +24,8 @@ import secrets
 import tempfile
 import zipfile
 import os
+from dataclasses import dataclass
+from enum import Enum
 
 import json
 
@@ -33,6 +35,73 @@ from urllib.parse import ParseResult, urlparse
 
 import pytak
 import pytak.crypto_classes  # pylint: disable=cyclic-import
+
+
+@dataclass(frozen=True)
+class COTType:
+    """Typed representation of a CoT type string."""
+
+    class Domain(str, Enum):
+        ATOM = "a"
+        BIOLOGICAL = "b"
+        CIVIL = "c"
+        UNKNOWN = "u"
+        TASK = "t"
+        ROUTE = "r"
+
+    class Affiliation(str, Enum):
+        FRIENDLY = "f"
+        HOSTILE = "h"
+        NEUTRAL = "n"
+        UNKNOWN = "u"
+        META = "x"
+
+    class Dimension(str, Enum):
+        AIR = "A"
+        GROUND = "G"
+        SEA_SURFACE = "S"
+        SUBSURFACE = "U"
+        SOF = "F"
+        DEVICE = "d"
+
+    class Category(str, Enum):
+        UNIT = "U"
+        VEHICLE = "V"
+        INDIVIDUAL = "I"
+        EQUIPMENT = "E"
+        DIAGNOSTICS = "d"
+
+    class Subtype(str, Enum):
+        COMBAT = "C"
+        RECON = "R"
+        MEDICAL = "M"
+        LEADER = "L"
+
+    domain: Domain
+    affiliation: Affiliation
+    dimension: Dimension
+    category: Optional[Category] = None
+    subtype: Optional[Subtype] = None
+
+    def __post_init__(self) -> None:
+        """Validate optional field dependencies."""
+        if self.subtype is not None and self.category is None:
+            raise ValueError("COTType subtype requires category")
+
+    def __str__(self) -> str:
+        """Serialize into standard CoT type format."""
+        cot_parts = [
+            self.domain.value,
+            self.affiliation.value,
+            self.dimension.value,
+        ]
+        if self.category is not None:
+            cot_parts.append(self.category.value)
+        if self.subtype is not None:
+            cot_parts.append(self.subtype.value)
+        return "-".join(cot_parts)
+
+    serialize = __str__
 
 
 def split_host(host: str, port: Union[int, None] = None) -> Tuple[str, int]:
@@ -217,7 +286,7 @@ def gen_cot_xml(
     le: Union[bytes, str, float, int, None] = None,
     uid: Union[str, None] = None,
     stale: Union[float, int, None] = None,
-    cot_type: Union[str, None] = None,
+    cot_type: Union[str, COTType, None] = None,
     callsign: Optional[str] = None,
 ) -> Optional[ET.Element]:
     """Generate a minimum CoT Event as an XML object."""
@@ -229,7 +298,7 @@ def gen_cot_xml(
     le = str(le) if le is not None else pytak.DEFAULT_COT_VAL
     uid = uid or pytak.DEFAULT_HOST_ID
     stale = int(stale or pytak.DEFAULT_COT_STALE)
-    cot_type = cot_type or "a-u-G"
+    cot_type = str(cot_type) if cot_type is not None else "a-u-G"
 
     event = ET.Element("event")
     event.set("version", "2.0")
@@ -274,10 +343,29 @@ def gen_cot(
     le: Union[bytes, float, int, None] = None,
     uid: Optional[str] = None,
     stale: Union[float, int, None] = None,
-    cot_type: Optional[str] = None,
+    cot_type: Union[str, COTType, None] = None,
     callsign: Optional[str] = None,
 ) -> Optional[bytes]:
-    """Generate a minimum CoT Event as an XML string [gen_cot_xml() wrapper]."""
+    """Generate a minimum CoT Event as an XML string [gen_cot_xml() wrapper].
+
+    Args:
+        lat, lon: gnss coordinates
+        ce: coordinates max error [m]
+        hae: WGS84 height (altitude)
+        le: altitude accuracy [m]
+        uid: client identification (hostname by default)
+        cot_type (str): <domain>-<affiliation>-<battle_dimension>-<function>-<subtype>
+            Domain:
+                "a" Atom (physical object), "b" Biological, "c" Civil, "u" Unknown, "t" Task, "r" Route
+            Affiliation: This is who it belongs to.
+                "f" Friendly, "h" Hostile, "n" Neutral, "u" Unknown
+            Battle Dimension: Describes the operational environment.
+                "A" Air, "G" Ground, "S" Sea surface, "U" Subsurface, "F" SOF (special operations forces context)
+            Function: Defines what kind of entity it is.
+                "U" Unit, "V" Vehicle, "I" Individual, "E" Equipment
+            Subtype:
+                "C" Combat, "R" Recon, "M" Medical, "L" Leader
+    """
     cot: Union[ET.Element, bytes, None] = gen_cot_xml(
         lat, lon, ce, hae, le, uid, stale, cot_type, callsign
     )
@@ -310,7 +398,7 @@ async def enroll_tak(host: str, username: str, password: str, passphrase: Option
 
     # Create a temporary file to store the certificate
     output_path = None
-    
+
     # Use tempfile to create a temp file for the cert
     with tempfile.NamedTemporaryFile(suffix=".p12", delete=False) as tmpfile:
         output_path = tmpfile.name

@@ -60,6 +60,7 @@ from .classes import (
 )
 
 from .functions import (
+    COTType,
     split_host,
     parse_url,
     hello_event,
@@ -126,6 +127,7 @@ __all__ = (
     "SimpleCOTEvent",
     "COTEvent",
     "TAKDataPackage",
+    "COTType",
     "split_host",
     "parse_url",
     "hello_event",
