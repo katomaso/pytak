@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from src.pytak.crypto_classes import CertificateEnrollment
+from pytak.crypto_classes import CertificateEnrollment
 import pytest
 
 

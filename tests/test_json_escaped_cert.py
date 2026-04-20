@@ -5,7 +5,7 @@ Test with a real certificate format that demonstrates the JSON escaping issue.
 
 import asyncio
 import logging
-from src.pytak.crypto_classes import CertificateEnrollment
+from pytak.crypto_classes import CertificateEnrollment
 from cryptography.hazmat.primitives.asymmetric import rsa
 import pytest
 
