@@ -18,6 +18,7 @@
 """PyTAK Crypto (as in cryptography) Functions."""
 
 import os
+from pathlib import Path
 import tempfile
 import warnings
 import ssl
@@ -74,8 +75,11 @@ def load_cert(
     return res
 
 
-def convert_cert(cert_path: str, cert_pass: str) -> dict:
-    """Convert a P12 cert to PEM."""
+def convert_cert(cert_path: str, cert_pass: str) -> dict[str, str]:
+    """Extract a P12 bundle to separate PEM files
+
+    :return: dict with keys pk_pem_path, cert_pem_path, ca_pem_path and paths (str) as values
+    """
     if not USE_CRYPTOGRAPHY:
         raise ValueError(INSTALL_MSG)
 
@@ -106,19 +110,20 @@ def convert_cert(cert_path: str, cert_pass: str) -> dict:
     return cert_paths
 
 
-
-def convert_p12_to_pem(output_path: str, passphrase: str) -> Tuple[str, str]:
-    # Convert .p12 to PEM
+def convert_p12_to_pem(output_path: str, passphrase: Optional[str]) -> Tuple[str, str]:
+    """
+    Extract p12 bundle to `output_path`.key.pem and cert-chain `output_path`.cert.pem
+    """
     with open(output_path, "rb") as p12_file:
         p12_data = p12_file.read()
     private_key, cert, additional_certs = pkcs12.load_key_and_certificates(
         p12_data, passphrase.encode()
     )
-    
+
     # Write PEM files
     pem_key_path = output_path + ".key.pem"
     pem_cert_path = output_path + ".cert.pem"
-    
+
     with open(pem_key_path, "wb") as key_file:
         key_file.write(
             private_key.private_bytes(
@@ -127,13 +132,13 @@ def convert_p12_to_pem(output_path: str, passphrase: str) -> Tuple[str, str]:
                 NoEncryption()
             )
         )
-        
+
     with open(pem_cert_path, "wb") as cert_file:
         cert_file.write(cert.public_bytes(Encoding.PEM))
         if additional_certs:
             for ca in additional_certs:
                 cert_file.write(ca.public_bytes(Encoding.PEM))
-                
+
     return pem_key_path, pem_cert_path
 
 
@@ -147,4 +152,4 @@ def convert_p12_to_ssl_context(output_path: str|Path, passphrase: Optional[str],
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
 
-    return ssl_contextcreate_ssl_context = convert_p12_to_ssl_context  # deprecated; backward-compatibility only
+create_ssl_context = convert_p12_to_ssl_context  # deprecated; backward-compatibility only
