@@ -149,7 +149,11 @@ def convert_p12_to_ssl_context(output_path: str|Path, passphrase: Optional[str],
     # ssl_context = ssl.create_default_context()
     ssl_context = ssl._create_unverified_context()
     ssl_context.load_cert_chain(certfile=pem_cert_path, keyfile=pem_key_path)
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
+    ssl_context.check_hostname = check_hostname
+    if check_hostname:  # if check_hostname is specified then we need a certificate from the server
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+    else:
+        ssl_context.verify_mode = ssl.CERT_NONE
+    return ssl_context
 
 create_ssl_context = convert_p12_to_ssl_context  # deprecated; backward-compatibility only
