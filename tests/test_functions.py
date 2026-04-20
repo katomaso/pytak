@@ -18,7 +18,6 @@
 
 """Python Team Awareness Kit (PyTAK) Module Tests."""
 
-import asyncio
 import urllib
 
 import pytest
@@ -95,6 +94,52 @@ def test_gen_cot():
     event = pytak.gen_cot(uid="taco")
     assert b"taco" in event
     assert b"a-u-G" in event
+
+
+def test_cot_type_serialization():
+    """Test that COTType serializes to expected CoT type format."""
+    cot_type = pytak.COTType(
+        domain=pytak.COTType.Domain.ATOM,
+        affiliation=pytak.COTType.Affiliation.FRIENDLY,
+        dimension=pytak.COTType.Dimension.GROUND,
+        function=pytak.COTType.Function.VEHICLE,
+        subtype=pytak.COTType.Subtype.RECON,
+    )
+    assert str(cot_type) == "a-f-G-V-R"
+
+
+def test_cot_type_serialization_without_function_subtype():
+    """Test that COTType serializes with only required components."""
+    cot_type = pytak.COTType(
+        domain=pytak.COTType.Domain.ATOM,
+        affiliation=pytak.COTType.Affiliation.FRIENDLY,
+        dimension=pytak.COTType.Dimension.GROUND,
+    )
+    assert str(cot_type) == "a-f-G"
+
+
+def test_cot_type_subtype_requires_function():
+    """Test that subtype cannot be set when function is omitted."""
+    with pytest.raises(ValueError):
+        pytak.COTType(
+            domain=pytak.COTType.Domain.ATOM,
+            affiliation=pytak.COTType.Affiliation.FRIENDLY,
+            dimension=pytak.COTType.Dimension.GROUND,
+            subtype=pytak.COTType.Subtype.RECON,
+        )
+
+
+def test_gen_cot_with_cot_type_class():
+    """Test gen_cot() accepts COTType and serializes it into XML."""
+    cot_type = pytak.COTType(
+        domain=pytak.COTType.Domain.CIVIL,
+        affiliation=pytak.COTType.Affiliation.UNKNOWN,
+        dimension=pytak.COTType.Dimension.AIR,
+        function=pytak.COTType.Function.EQUIPMENT,
+        subtype=pytak.COTType.Subtype.MEDICAL,
+    )
+    event = pytak.gen_cot(uid="taco", cot_type=cot_type)
+    assert b"type=\"c-u-A-E-M\"" in event
 
 
 def test_hello_event():
