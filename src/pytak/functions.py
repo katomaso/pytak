@@ -285,9 +285,11 @@ def gen_cot_xml(
     hae: Union[bytes, str, float, int, None] = None,
     le: Union[bytes, str, float, int, None] = None,
     uid: Union[str, None] = None,
-    stale: Union[float, int, None] = None,
+    stale: Union[float, int, None] = None,  # [s] in which this message is obsolete
     cot_type: Union[str, COTType, None] = None,
     callsign: Optional[str] = None,
+    track: Optional[int] = None,  # track in degrees
+    speed: Optional[float] = None,  # speed in m/s
 ) -> Optional[ET.Element]:
     """Generate a minimum CoT Event as an XML object."""
     # Optimized: Use default values directly instead of redundant or operators
@@ -300,39 +302,44 @@ def gen_cot_xml(
     stale = int(stale or pytak.DEFAULT_COT_STALE)
     cot_type = str(cot_type) if cot_type is not None else "a-u-G"
 
-    event = ET.Element("event")
-    event.set("version", "2.0")
-    event.set("type", cot_type)
-    event.set("uid", uid)
-    event.set("how", "m-g")
-    event.set("time", pytak.cot_time())
-    event.set("start", pytak.cot_time())
-    event.set("stale", pytak.cot_time(stale))
+    event_el = ET.Element("event")
+    event_el.set("version", "2.0")
+    event_el.set("type", cot_type)
+    event_el.set("uid", uid)
+    event_el.set("how", "m-g")
+    event_el.set("time", pytak.cot_time())
+    event_el.set("start", pytak.cot_time())
+    event_el.set("stale", pytak.cot_time(stale))
 
-    point = ET.Element("point")
-    point.set("lat", lat)
-    point.set("lon", lon)
-    point.set("le", le)
-    point.set("hae", hae)
-    point.set("ce", ce)
+    point_el = ET.Element("point")
+    point_el.set("lat", lat)
+    point_el.set("lon", lon)
+    point_el.set("le", le)
+    point_el.set("hae", hae)
+    point_el.set("ce", ce)
 
-    # Optimized: Pre-compute flow tag name once
-    flow_tags = ET.Element("_flow-tags_")
-    _ft_tag: str = f"{pytak.DEFAULT_HOST_ID}-pytak".replace("@", "-")
-    flow_tags.set(_ft_tag, pytak.cot_time())
+    detail_el = ET.Element("detail")
 
-    detail = ET.Element("detail")
-    detail.append(flow_tags)
+    # flow_tags = ET.Element("_flow-tags_")
+    # _ft_tag: str = f"{pytak.DEFAULT_HOST_ID}-pytak".replace("@", "-")
+    # flow_tags.set(_ft_tag, pytak.cot_time())
+    # detail.append(flow_tags)
 
     if callsign:
-        contact = ET.Element("contact")
-        contact.set("callsign", callsign)
-        detail.append(contact)
+        contact_el = ET.Element("contact")
+        contact_el.set("callsign", callsign)
+        detail_el.append(contact_el)
 
-    event.append(point)
-    event.append(detail)
+    if track is not None and speed is not None:
+        track_el = ET.Element("track")
+        track_el.set("track", str(track))
+        track_el.set("speed", str(speed))
+        detail_el.append(track_el)
 
-    return event
+    event_el.append(point_el)
+    event_el.append(detail_el)
+
+    return event_el
 
 
 def gen_cot(
@@ -342,9 +349,11 @@ def gen_cot(
     hae: Union[bytes, float, int, None] = None,
     le: Union[bytes, float, int, None] = None,
     uid: Optional[str] = None,
-    stale: Union[float, int, None] = None,
+    stale: Union[float, int, None] = None,  # [s] in which this message is obsolete
     cot_type: Union[str, COTType, None] = None,
     callsign: Optional[str] = None,
+    track: Optional[int] = None,  # track in degrees
+    speed: Optional[float] = None,  # speed in m/s
 ) -> Optional[bytes]:
     """Generate a minimum CoT Event as an XML string [gen_cot_xml() wrapper].
 
@@ -367,7 +376,7 @@ def gen_cot(
                 "C" Combat, "R" Recon, "M" Medical, "L" Leader
     """
     cot: Union[ET.Element, bytes, None] = gen_cot_xml(
-        lat, lon, ce, hae, le, uid, stale, cot_type, callsign
+        lat, lon, ce, hae, le, uid, stale, cot_type, callsign, track, speed,
     )
     if isinstance(cot, ET.Element):
         # Optimized: Pre-allocate bytearray for better performance
