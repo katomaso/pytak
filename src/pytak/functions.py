@@ -39,7 +39,7 @@ import pytak.crypto_classes  # pylint: disable=cyclic-import
 
 @dataclass(frozen=True)
 class COTType:
-    """Typed representation of a CoT type string."""
+    """Typed representation of a CoT type string based on MIL-STD-2525B w/CHANGE 2"""
 
     class Domain(str, Enum):
         ATOM = "a"
@@ -48,11 +48,15 @@ class COTType:
         UNKNOWN = "u"
         TASK = "t"
         ROUTE = "r"
+        PEER = "p"
 
     class Affiliation(str, Enum):
         FRIENDLY = "f"
+        ASSUMED_FRIEND = "a"
         HOSTILE = "h"
+        SUSPECT = "s"   # assumed hostile
         NEUTRAL = "n"
+        PENDING = "p"
         UNKNOWN = "u"
         META = "x"
 
@@ -61,21 +65,24 @@ class COTType:
         GROUND = "G"
         SEA_SURFACE = "S"
         SUBSURFACE = "U"
-        SOF = "F"
-        DEVICE = "d"
+        SOF = "F"  # special forces
+        DEVICE = "D"
+        UNKNOWN = "Z"
 
     class Category(str, Enum):
         UNIT = "U"
         VEHICLE = "V"
         INDIVIDUAL = "I"
+        CIVIL = "C"
         EQUIPMENT = "E"
-        DIAGNOSTICS = "d"
+        DIAGNOSTICS = "D"
 
     class Subtype(str, Enum):
         COMBAT = "C"
         RECON = "R"
         MEDICAL = "M"
         LEADER = "L"
+        QUADROCOPTER = "q"
 
     domain: Domain
     affiliation: Affiliation
