@@ -70,7 +70,7 @@ DEFAULT_TAK_PROTO: str = "0"
 
 # Python <3.8 has no way of including XML Declaration in ET.tostring():
 DEFAULT_XML_DECLARATION: bytes = (
-    b'<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>'
+    b'<?xml version="1.0" encoding="UTF-8"?>\n'
 )
 
 # Multicast

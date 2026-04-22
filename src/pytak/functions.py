@@ -386,8 +386,7 @@ def gen_cot(
         lat, lon, ce, hae, le, uid, stale, cot_type, callsign, track, speed,
     )
     if isinstance(cot, ET.Element):
-        # Optimized: Pre-allocate bytearray for better performance
-        return pytak.DEFAULT_XML_DECLARATION + b"\n" + ET.tostring(cot)
+        return pytak.DEFAULT_XML_DECLARATION + ET.tostring(cot)
     return cot
 
 
@@ -398,13 +397,12 @@ def tak_pong() -> bytes:
     event.set("type", "t-x-d-d")
     event.set("uid", "takPong")
     event.set("how", "m-g")
-    
-    # Optimized: Compute time once and reuse
+
     current_time: str = pytak.cot_time()
     event.set("time", current_time)
     event.set("start", current_time)
     event.set("stale", pytak.cot_time(3600))
-    
+
     return ET.tostring(event)
 
 
