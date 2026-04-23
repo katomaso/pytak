@@ -255,14 +255,14 @@ def cot2xml(event: pytak.COTEvent) -> ET.Element:
     hae = str(event.hae) if event.hae is not None else pytak.DEFAULT_COT_VAL
     ce = str(event.ce) if event.ce is not None else pytak.DEFAULT_COT_VAL
 
-    xevent = ET.Element("event")
-    xevent.set("version", "2.0")
-    xevent.set("type", cot_type)
-    xevent.set("uid", uid)
-    xevent.set("how", "m-g")
-    xevent.set("time", pytak.cot_time())
-    xevent.set("start", pytak.cot_time())
-    xevent.set("stale", pytak.cot_time(stale))
+    event_el = ET.Element("event")
+    event_el.set("version", "2.0")
+    event_el.set("type", cot_type)
+    event_el.set("uid", uid)
+    event_el.set("how", "m-g")
+    event_el.set("time", pytak.cot_time())
+    event_el.set("start", pytak.cot_time())
+    event_el.set("stale", pytak.cot_time(stale))
 
     point = ET.Element("point")
     point.set("lat", lat)
@@ -279,10 +279,10 @@ def cot2xml(event: pytak.COTEvent) -> ET.Element:
     detail = ET.Element("detail")
     detail.append(flow_tags)
 
-    xevent.append(point)
-    xevent.append(detail)
+    event_el.append(point)
+    event_el.append(detail)
 
-    return xevent
+    return event_el
 
 
 def gen_cot_xml(
