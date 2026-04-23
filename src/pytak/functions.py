@@ -40,7 +40,6 @@ import pytak.crypto_classes  # pylint: disable=cyclic-import
 @dataclass(frozen=True)
 class COTType:
     """Typed representation of a CoT type string based on MIL-STD-2525B w/CHANGE 2"""
-
     class Domain(str, Enum):
         ATOM = "a"
         BIOLOGICAL = "b"
@@ -49,6 +48,7 @@ class COTType:
         TASK = "t"
         ROUTE = "r"
         PEER = "p"
+        WAR_FIGHTING = "s"
 
     class Affiliation(str, Enum):
         FRIENDLY = "f"
@@ -76,23 +76,30 @@ class COTType:
         CIVIL = "C"
         EQUIPMENT = "E"
         DIAGNOSTICS = "D"
+        PLANE = "P"
 
     class Subtype(str, Enum):
-        COMBAT = "C"
+        CIVIL = "C"
         RECON = "R"
         MEDICAL = "M"
         LEADER = "L"
-        QUADROCOPTER = "q"
+
+    class SubSubtype(str, Enum):
+        FIXED_WING = "F"
+        ROTARY = "H"
 
     domain: Domain
     affiliation: Affiliation
     dimension: Dimension
     category: Optional[Category] = None
     subtype: Optional[Subtype] = None
+    subsubtype: Optional[SubSubtype] = None
 
     def __post_init__(self) -> None:
         """Validate optional field dependencies."""
         if self.subtype is not None and self.category is None:
+            raise ValueError("COTType subtype requires category")
+        if self.subsubtype is not None and self.subtype is None:
             raise ValueError("COTType subtype requires category")
 
     def __str__(self) -> str:
@@ -106,6 +113,8 @@ class COTType:
             cot_parts.append(self.category.value)
         if self.subtype is not None:
             cot_parts.append(self.subtype.value)
+        if self.subsubtype is not None:
+            cot_parts.append(self.subsubtype.value)
         return "-".join(cot_parts)
 
     serialize = __str__
