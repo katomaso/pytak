@@ -48,7 +48,6 @@ class COTType:
         TASK = "t"
         ROUTE = "r"
         PEER = "p"
-        WAR_FIGHTING = "s"
 
     class Affiliation(str, Enum):
         FRIENDLY = "f"
@@ -74,19 +73,20 @@ class COTType:
         VEHICLE = "V"
         INDIVIDUAL = "I"
         CIVIL = "C"
+        MILITARY = "M"
         EQUIPMENT = "E"
         DIAGNOSTICS = "D"
-        PLANE = "P"
+        WEAPON = "W"
 
     class Subtype(str, Enum):
-        CIVIL = "C"
         RECON = "R"
         MEDICAL = "M"
         LEADER = "L"
-
-    class SubSubtype(str, Enum):
         FIXED_WING = "F"
         ROTARY = "H"
+
+    class SubSubtype(str, Enum):
+        DRONE = 'q'
 
     domain: Domain
     affiliation: Affiliation
