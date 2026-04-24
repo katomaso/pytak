@@ -84,6 +84,7 @@ class COTType:
         LEADER = "L"
         FIXED_WING = "F"
         ROTARY = "H"
+        SENSOR = "S"
 
     class SubSubtype(str, Enum):
         DRONE = 'q'
