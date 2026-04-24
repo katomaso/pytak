@@ -306,6 +306,8 @@ def gen_cot_xml(
     callsign: Optional[str] = None,
     track: Optional[int] = None,  # track in degrees
     speed: Optional[float] = None,  # speed in m/s
+    link_to: Optional[tuple[COTType|str, str]] = None,
+    flow_tag: str = pytak.DEFAULT_HOST_ID.replace("@", "-"),
 ) -> Optional[ET.Element]:
     """Generate a minimum CoT Event as an XML object."""
     # Optimized: Use default values directly instead of redundant or operators
@@ -336,10 +338,9 @@ def gen_cot_xml(
 
     detail_el = ET.Element("detail")
 
-    # flow_tags = ET.Element("_flow-tags_")
-    # _ft_tag: str = f"{pytak.DEFAULT_HOST_ID}-pytak".replace("@", "-")
-    # flow_tags.set(_ft_tag, pytak.cot_time())
-    # detail.append(flow_tags)
+    flow_tags = ET.Element("_flow-tags_")
+    flow_tags.set(flow_tag, pytak.cot_time())
+    detail_el.append(flow_tags)
 
     if callsign:
         contact_el = ET.Element("contact")
@@ -351,6 +352,13 @@ def gen_cot_xml(
         track_el.set("track", str(track))
         track_el.set("speed", str(speed))
         detail_el.append(track_el)
+
+    if link_to:
+        link_el = ET.Element("link")
+        link_el.set("relation", "p-p")  # TODO
+        link_el.set("type", str(link_to[0]))
+        link_el.set("uid", str(link_to[1]))
+        detail_el.append(link_el)
 
     event_el.append(point_el)
     event_el.append(detail_el)
@@ -370,6 +378,8 @@ def gen_cot(
     callsign: Optional[str] = None,
     track: Optional[int] = None,  # track in degrees
     speed: Optional[float] = None,  # speed in m/s
+    link_to: Optional[tuple[COTType|str, str]] = None,
+    flow_tag: str = pytak.DEFAULT_HOST_ID.replace("@", "-"),
 ) -> Optional[bytes]:
     """Generate a minimum CoT Event as an XML string [gen_cot_xml() wrapper].
 
@@ -392,7 +402,7 @@ def gen_cot(
                 "C" Combat, "R" Recon, "M" Medical, "L" Leader
     """
     cot: Union[ET.Element, bytes, None] = gen_cot_xml(
-        lat, lon, ce, hae, le, uid, stale, cot_type, callsign, track, speed,
+        lat, lon, ce, hae, le, uid, stale, cot_type, callsign, track, speed, link_to, flow_tag
     )
     if isinstance(cot, ET.Element):
         return pytak.DEFAULT_XML_DECLARATION + ET.tostring(cot)
