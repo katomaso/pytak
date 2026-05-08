@@ -35,9 +35,8 @@ INSTALL_MSG = (
 USE_CRYPTOGRAPHY = False
 try:
     from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.serialization import pkcs12, Encoding, PrivateFormat, NoEncryption
-    from cryptography.x509 import Certificate
-    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives.serialization import pkcs12, PrivateFormat, NoEncryption
+    from cryptography import x509
 
     USE_CRYPTOGRAPHY = True
 except ImportError as exc:
@@ -47,38 +46,23 @@ logger = logging.getLogger("pytak.crypto")
 
 def save_pem(pem: bytes, dest: Union[str, None] = None) -> str:
     """Save PEM data to dest."""
-    if dest:
-        with open(dest, "wb+") as dest_fd:
-            dest_fd.write(pem)
-        pem_path: str = dest
-    else:
-        pem_fd, pem_path = tempfile.mkstemp(suffix=".pem")
-        with os.fdopen(pem_fd, "wb+") as pfd:
-            pfd.write(pem)
-
-    assert os.path.exists(pem_path)
+    if dest and Path(dest).write_bytes(pem) > 0:
+        return dest
+    pem_fd, pem_path = tempfile.mkstemp(suffix=".pem")
+    with os.fdopen(pem_fd, "wb+") as pfd:
+        pfd.write(pem)
     return pem_path
 
 
-def load_cert(
-    cert_path: str, cert_pass: str
-):  # -> Set[_RSAPrivateKey, Certificate, Certificate]:
-    """Load RSA Keys & Certs from a pkcs12 ().p12) file."""
-    if not USE_CRYPTOGRAPHY:
-        raise ValueError(INSTALL_MSG)
-
-    with open(cert_path, "br+") as cp_fd:
-        p12_data = cp_fd.read()
-
-    res = pkcs12.load_key_and_certificates(p12_data, str.encode(cert_pass))
-    assert len(res) == 3
-    return res
-
-
-def convert_cert(cert_path: str, cert_pass: str) -> dict[str, str]:
+def convert_cert(cert_path: str, cert_pass: str|None = None, output: str|None = None) -> dict[str, str]:
     """Extract a P12 bundle to separate PEM files
 
-    :return: dict with keys pk_pem_path, cert_pem_path, ca_pem_path and paths (str) as values
+    :return: dict with paths to extracted PEM files
+        - pk_pem_path: private key in PEM format
+        - cert_pem_path: public certificate belonging to the private key
+        - ca_pem_path: CA certificate (first certificate in the chain after the client certificate)
+        - root_ca_pem_path: rootCA certificate (the last certificate in the chain)
+        - cert_chain_path: full certificate chain from the client's up to rootCA (you want to identify with this)
     """
     if not USE_CRYPTOGRAPHY:
         raise ValueError(INSTALL_MSG)
@@ -87,73 +71,73 @@ def convert_cert(cert_path: str, cert_pass: str) -> dict[str, str]:
         "pk_pem_path": None,
         "cert_pem_path": None,
         "ca_pem_path": None,
+        "root_ca_pem_path": None,
+        "cert_chain_path": None,
     }
 
-    private_key, cert, additional_certificates = load_cert(cert_path, cert_pass)
+    private_key, cert, additional_certificates = pkcs12.load_key_and_certificates(
+        Path(cert_path).read_bytes(),
+        cert_pass.encode() if cert_pass else None
+    )
 
-    # Load privkey
     pk_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    cert_paths["pk_pem_path"] = save_pem(pk_pem)
+    cert_paths["pk_pem_path"] = save_pem(pk_pem, output+".key.pem" if output else None)
 
     cert_pem = cert.public_bytes(encoding=serialization.Encoding.PEM)
-    cert_paths["cert_pem_path"] = save_pem(cert_pem)
+    cert_paths["cert_pem_path"] = save_pem(cert_pem, output+".cert_only.pem" if output else None)
 
-    ca_cert: Certificate = additional_certificates[0]
+    cert_paths["cert_chain_path"] = save_pem(cert_pem, output+".cert.pem" if output else None)
+    with open(cert_paths["cert_chain_path"], "ab") as cert_file:
+        for ca in additional_certificates:
+            cert_file.write(ca.public_bytes(serialization.Encoding.PEM))
+
+    ca_cert: x509.Certificate = additional_certificates[0]
     ca_pem = ca_cert.public_bytes(encoding=serialization.Encoding.PEM)
-    cert_paths["ca_pem_path"] = save_pem(ca_pem)
+    cert_paths["ca_pem_path"] = save_pem(ca_pem, output+".ca.pem" if output else None)
+
+    ca_root_cert: x509.Certificate = additional_certificates[-1]
+    ca_root_pem = ca_root_cert.public_bytes(encoding=serialization.Encoding.PEM)
+    cert_paths["root_ca_pem_path"] = save_pem(ca_root_pem, output+".root_ca.pem" if output else None)
 
     assert all(cert_paths)
     return cert_paths
 
 
 def convert_p12_to_pem(output_path: str, passphrase: Optional[str]) -> Tuple[str, str]:
+    """Extract p12 bundle to `output_path`.key.pem and cert-chain `output_path`.cert.pem"""
+    pems = convert_cert(output_path, passphrase, output_path)
+    return pems["pk_pem_path"], pems["cert_chain_path"]
+
+
+def convert_p12_to_ssl_context(output_path: str|Path, passphrase: Optional[str], check_hostname: bool = False, check_server: bool = True, use_root_ca: bool = False) -> ssl.SSLContext:
+    """Create an SSL Context from a PKCS#12 certificate container.
+
+    :param output_path: the input .p12 bundle
+    :param passphrase: password for unpacking .p12 bundle
+    :param check_hostname: whether force checking CN part of the server certificate for correct hostname/IP
+    :param check_server: if False, the communication will use client certificate but not require server certificate
+    :param use_root_ca: use rootCA from .p12 for server certificate verification
     """
-    Extract p12 bundle to `output_path`.key.pem and cert-chain `output_path`.cert.pem
-    """
-    with open(output_path, "rb") as p12_file:
-        p12_data = p12_file.read()
-    private_key, cert, additional_certs = pkcs12.load_key_and_certificates(
-        p12_data, passphrase.encode() if passphrase else None
-    )
+    pems = convert_cert(str(output_path), passphrase)
 
-    # Write PEM files
-    pem_key_path = output_path + ".key.pem"
-    pem_cert_path = output_path + ".cert.pem"
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.load_cert_chain(certfile=pems["cert_chain_path"], keyfile=pems["pk_pem_path"])
+    if not check_server:
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
 
-    with open(pem_key_path, "wb") as key_file:
-        key_file.write(
-            private_key.private_bytes(
-                Encoding.PEM,
-                PrivateFormat.TraditionalOpenSSL,
-                NoEncryption()
-            )
-        )
-
-    with open(pem_cert_path, "wb") as cert_file:
-        cert_file.write(cert.public_bytes(Encoding.PEM))
-        if additional_certs:
-            for ca in additional_certs:
-                cert_file.write(ca.public_bytes(Encoding.PEM))
-
-    return pem_key_path, pem_cert_path
-
-
-def convert_p12_to_ssl_context(output_path: str|Path, passphrase: Optional[str], check_hostname: bool = False) -> ssl.SSLContext:
-    """Create an SSL Context from a PKCS#12 certificate container."""
-    pem_key_path, pem_cert_path = convert_p12_to_pem(str(output_path), passphrase)
-    # Create an SSL context using the PEM files
-    # ssl_context = ssl.create_default_context()
-    ssl_context = ssl._create_unverified_context()
-    ssl_context.load_cert_chain(certfile=pem_cert_path, keyfile=pem_key_path)
-    ssl_context.check_hostname = check_hostname
-    if check_hostname:  # if check_hostname is specified then we need a certificate from the server
-        ssl_context.verify_mode = ssl.CERT_REQUIRED
+    ctx.check_hostname = check_hostname
+    ctx.verify_mode = ssl.CERT_REQUIRED  # we always require certificate from the server
+    ctx.verify_flags = ssl.VERIFY_DEFAULT  # do not check against CRL databases
+    if use_root_ca:
+        ctx.load_verify_locations(cafile=pems["root_ca_pem_path"])
     else:
-        ssl_context.verify_mode = ssl.CERT_NONE
-    return ssl_context
+        ctx.load_default_certs()
+    return ctx
 
 create_ssl_context = convert_p12_to_ssl_context  # deprecated; backward-compatibility only
