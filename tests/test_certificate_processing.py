@@ -5,14 +5,12 @@ Test the improved certificate processing functionality.
 
 from pytak.crypto_classes import CertificateEnrollment
 
-import tempfile
-import os
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
-import datetime
+from datetime import datetime, timezone, timedelta
 
 
 def create_test_pkcs12():
@@ -34,8 +32,8 @@ def create_test_pkcs12():
         .issuer_name(subject)
         .public_key(private_key.public_key())
         .serial_number(1)
-        .not_valid_before(datetime.datetime.utcnow())
-        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
+        .not_valid_before(datetime.now(timezone.utc))
+        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
         .sign(private_key, hashes.SHA256())
     )
 

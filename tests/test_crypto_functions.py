@@ -20,18 +20,19 @@
 
 import os
 
+from pathlib import Path
 from unittest import mock
 from tempfile import NamedTemporaryFile
-
 import pytak
 
+HERE = Path(__file__).parent
 
 def test_convert_cert():
-    cert_path = "test_cert.p12"
+    cert_path = str(HERE / "data" / "test_user_cert.p12")
     cert_pass = "test_pass"
 
     # Mock the load_cert function
-    with mock.patch("pytak.crypto_functions.load_cert") as mock_load_cert:
+    with mock.patch("cryptography.hazmat.primitives.serialization.pkcs12.load_key_and_certificates") as mock_load_cert:
         mock_private_key = mock.Mock()
         mock_cert = mock.Mock()
         mock_additional_certificates = [mock.Mock()]

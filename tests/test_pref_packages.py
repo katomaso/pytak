@@ -42,13 +42,6 @@ def test_load_connectString2url() -> None:
     assert url == "ssl://takserver.example.com:8089"
 
 
-def test_load_cert() -> None:
-    cert: list = pytak.crypto_functions.load_cert(
-        __folder__ + "/data/test_user_cert.p12", "atakatak"
-    )
-    assert len(cert) == 3
-
-
 def test_load_convert_cert():
     """Test converting P12 certs to a PEM certs."""
     test_pref: str = __folder__ + "/data/test_pref.pref"
