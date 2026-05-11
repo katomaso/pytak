@@ -379,11 +379,11 @@ class CertificateEnrollment:
             # Choose endpoint based on version
             if use_v2:
                 url = (
-                    f"https://{domain}:8446/Marti/api/tls/signClient/v2?clientUid=test"
+                    f"https://{domain}/Marti/api/tls/signClient/v2?clientUid=test"
                 )
                 content_type = "application/pkcs10"
             else:
-                url = f"https://{domain}:8446/Marti/api/tls/signClient?clientUid=test"
+                url = f"https://{domain}/Marti/api/tls/signClient?clientUid=test"
                 content_type = "application/pkcs10"
 
             auth = BasicAuth(username, password)
