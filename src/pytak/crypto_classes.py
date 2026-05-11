@@ -737,8 +737,8 @@ class CertificateEnrollment:
                 cert=certificate,
                 cas=ca_certificates if ca_certificates else None,
                 encryption_algorithm=serialization.BestAvailableEncryption(
-                    passphrase.encode("utf-8")
-                ),
+                    passphrase
+                ) if passphrase else serialization.NoEncryption(),
             )
 
             # Save to file
