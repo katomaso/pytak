@@ -102,7 +102,7 @@ def test_cot_type_serialization():
         domain=pytak.COTType.Domain.ATOM,
         affiliation=pytak.COTType.Affiliation.FRIENDLY,
         dimension=pytak.COTType.Dimension.GROUND,
-        function=pytak.COTType.Function.VEHICLE,
+        category=pytak.COTType.Category.VEHICLE,
         subtype=pytak.COTType.Subtype.RECON,
     )
     assert str(cot_type) == "a-f-G-V-R"
@@ -135,7 +135,7 @@ def test_gen_cot_with_cot_type_class():
         domain=pytak.COTType.Domain.CIVIL,
         affiliation=pytak.COTType.Affiliation.UNKNOWN,
         dimension=pytak.COTType.Dimension.AIR,
-        function=pytak.COTType.Function.EQUIPMENT,
+        category=pytak.COTType.Category.EQUIPMENT,
         subtype=pytak.COTType.Subtype.MEDICAL,
     )
     event = pytak.gen_cot(uid="taco", cot_type=cot_type)
